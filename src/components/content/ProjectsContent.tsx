@@ -1,22 +1,20 @@
 import React from 'react';
-import { Billboard, Plane, Text } from '@react-three/drei';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-// --- Materials (Copied) ---
-const hologramMaterial = new THREE.MeshStandardMaterial(/* ... */);
-hologramMaterial.color = new THREE.Color('#00ffff'); hologramMaterial.emissive = new THREE.Color('#00ffff');
-hologramMaterial.emissiveIntensity = 0.6; hologramMaterial.transparent = true; hologramMaterial.opacity = 0.6;
-hologramMaterial.roughness = 0.6; hologramMaterial.metalness = 0.2; hologramMaterial.side = THREE.DoubleSide;
-hologramMaterial.depthWrite = false; hologramMaterial.blending = THREE.AdditiveBlending;
+// --- Adjusted Materials for Console (Copied from others) ---
+const consoleTextMaterial = new THREE.MeshStandardMaterial({
+  color: '#E0F8F8', emissive: '#A0FFFF', emissiveIntensity: 0.2, 
+  roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.9,
+});
 
-const textMaterial = hologramMaterial.clone();
-textMaterial.emissiveIntensity = 1.0; textMaterial.opacity = 0.8;
+const consoleDetailTextMaterial = consoleTextMaterial.clone();
+consoleDetailTextMaterial.color.set('#B0E0E0');
+consoleDetailTextMaterial.emissiveIntensity = 0.1;
+consoleDetailTextMaterial.opacity = 0.8;
 
-const detailTextMaterial = textMaterial.clone();
-detailTextMaterial.emissiveIntensity = 0.8; detailTextMaterial.opacity = 0.7;
-
-const techTextMaterial = detailTextMaterial.clone(); // Slightly different style for techs
-techTextMaterial.emissiveIntensity = 0.7; techTextMaterial.opacity = 0.6;
+const consoleTechTextMaterial = consoleDetailTextMaterial.clone();
+consoleTechTextMaterial.opacity = 0.7; // Tech slightly dimmer than details
 // -----------
 
 // --- Data ---
@@ -29,60 +27,65 @@ const projectData = [
 ];
 // ----------
 
-const ProjectsContent: React.FC = () => {
-    const panelWidth = 5;
-    const panelHeight = 3.5;
-    const itemSpacing = 0.8;
-    const startY = panelHeight / 2 - 0.5;
+// --- Props Interface ---
+interface ProjectsContentProps {
+    panelWidth: number;
+    panelHeight: number;
+    // Removed scroll props
+}
+
+const ProjectsContent: React.FC<ProjectsContentProps> = ({ 
+    panelWidth, 
+    panelHeight 
+}) => {
+
+    // Layout constants using props
+    const itemSpacing = 0.8; 
+    const topPadding = 0.2;
     const contentStartX = -panelWidth / 2 + 0.3;
     const contentMaxWidth = panelWidth - 0.6;
     const techSpacing = 0.08;
 
+    // Adjusted start positions relative to console center
+    const startY = panelHeight / 2 - topPadding - 0.1; // Start below padding
+
     return (
-        <Billboard position={[0, 1, -3]}>
-            <Plane args={[panelWidth, panelHeight]} material={hologramMaterial} />
-
-            {/* Title */}
-            <Text material={textMaterial} fontSize={0.25} color={textMaterial.emissive} position={[0, panelHeight / 2 - 0.2, 0.01]} anchorX="center" anchorY="top">
-                Projects
-            </Text>
-
-            {/* Projects List */}
+        <group position={[0, 0, 0]}> 
+            {/* Projects List - No scroll group */}
             {projectData.map((project, index) => {
-                const yPos = startY - index * itemSpacing;
-                let currentTechX = contentStartX; // For horizontal tech list layout
-                const techYOffset = -0.32; // Base Y offset for tech items below description
+                // Calculate Y relative to the container's top (startY)
+                const yPos = startY - index * itemSpacing; 
+                let currentTechX = contentStartX; 
+                const techYOffset = -0.32; // Keep this relative offset
+
+                // Removed visibility check
 
                 return (
                     <group key={index} position={[0, yPos, 0.01]}>
                         {/* Project Name */}
-                        <Text material={textMaterial} fontSize={0.14} color={textMaterial.emissive} position={[contentStartX, 0, 0]} anchorX="left" anchorY="top" maxWidth={contentMaxWidth * 0.8 /* Leave space for link */}>
+                        <Text material={consoleTextMaterial} fontSize={0.14} color={consoleTextMaterial.color} position={[contentStartX, 0, 0]} anchorX="left" anchorY="top" maxWidth={contentMaxWidth * 0.8}>
                             {project.name}
                         </Text>
                         {/* Project Link (simplified) */}
-                        <Text material={detailTextMaterial} fontSize={0.08} color={detailTextMaterial.emissive} position={[panelWidth/2 - 0.3, -0.02, 0]} anchorX="right" anchorY="top">
+                        <Text material={consoleDetailTextMaterial} fontSize={0.08} color={consoleDetailTextMaterial.color} position={[panelWidth/2 - 0.3, -0.02, 0]} anchorX="right" anchorY="top">
                             {project.isExternal ? "(Link)" : "(Internal)"}
-                            {/* TODO: Make clickable later */} 
                         </Text>
                          {/* Description */}
-                         <Text material={detailTextMaterial} fontSize={0.1} color={detailTextMaterial.emissive} position={[contentStartX, -0.18, 0]} anchorX="left" anchorY="top" maxWidth={contentMaxWidth} lineHeight={1.4} textAlign="left">
+                         <Text material={consoleDetailTextMaterial} fontSize={0.1} color={consoleDetailTextMaterial.color} position={[contentStartX, -0.18, 0]} anchorX="left" anchorY="top" maxWidth={contentMaxWidth} lineHeight={1.4} textAlign="left">
                            {project.description}
                          </Text>
                          {/* Technologies (horizontal list) */}
                          <group position={[0, techYOffset, 0]}>
                            {project.technologies.map((tech, techIndex) => {
                              const x = currentTechX;
-                             // Basic width estimation
                              const widthEstimate = tech.length * 0.04 + 0.04;
-                             currentTechX += widthEstimate + techSpacing; // Move X for next tech
+                             currentTechX += widthEstimate + techSpacing;
 
-                             // Simple wrap (reset X if exceeds boundary)
-                             if (currentTechX > panelWidth / 2 - 0.2) {
-                                // This simple wrap isn't perfect, might need refinement
-                             }
+                             // Basic wrap - simple version, just render, might overlap
+                             // if (currentTechX > panelWidth / 2 - 0.2) { }
 
                              return (
-                                <Text key={techIndex} material={techTextMaterial} fontSize={0.07} color={techTextMaterial.emissive} position={[x - contentStartX, 0, 0.001]} /* Position relative to tech group */ anchorX="left" anchorY="middle" >
+                                <Text key={techIndex} material={consoleTechTextMaterial} fontSize={0.07} color={consoleTechTextMaterial.color} position={[x, 0, 0.001]} /* Position relative to group origin */ anchorX="left" anchorY="middle" >
                                    {`[${tech}]`}
                                 </Text>
                              );
@@ -91,7 +94,7 @@ const ProjectsContent: React.FC = () => {
                     </group>
                 );
             })}
-        </Billboard>
+        </group>
     );
 };
 

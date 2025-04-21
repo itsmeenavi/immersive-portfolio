@@ -1,19 +1,17 @@
 import React from 'react';
-import { Billboard, Plane, Text } from '@react-three/drei';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-// --- Materials (Copied) ---
-const hologramMaterial = new THREE.MeshStandardMaterial(/* ... */);
-hologramMaterial.color = new THREE.Color('#00ffff'); hologramMaterial.emissive = new THREE.Color('#00ffff');
-hologramMaterial.emissiveIntensity = 0.6; hologramMaterial.transparent = true; hologramMaterial.opacity = 0.6;
-hologramMaterial.roughness = 0.6; hologramMaterial.metalness = 0.2; hologramMaterial.side = THREE.DoubleSide;
-hologramMaterial.depthWrite = false; hologramMaterial.blending = THREE.AdditiveBlending;
+// --- Adjusted Materials for Console (Copied from others) ---
+const consoleTextMaterial = new THREE.MeshStandardMaterial({
+  color: '#E0F8F8', emissive: '#A0FFFF', emissiveIntensity: 0.2, 
+  roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.9,
+});
 
-const textMaterial = hologramMaterial.clone();
-textMaterial.emissiveIntensity = 1.0; textMaterial.opacity = 0.8;
-
-const detailTextMaterial = textMaterial.clone(); // For slightly less prominent text
-detailTextMaterial.emissiveIntensity = 0.8; detailTextMaterial.opacity = 0.7;
+const consoleDetailTextMaterial = consoleTextMaterial.clone();
+consoleDetailTextMaterial.color.set('#B0E0E0');
+consoleDetailTextMaterial.emissiveIntensity = 0.1;
+consoleDetailTextMaterial.opacity = 0.8;
 // -----------
 
 // --- Data --- 
@@ -26,42 +24,45 @@ const educationData = [
 ];
 // ----------
 
-const EducationContent: React.FC = () => {
-  const panelWidth = 4.5;
-  const panelHeight = 3;
+// --- Props Interface ---
+interface EducationContentProps {
+    panelWidth: number;
+    panelHeight: number;
+    // Removed scroll props
+}
+
+const EducationContent: React.FC<EducationContentProps> = ({ 
+    panelWidth, 
+    panelHeight 
+}) => {
+  
+  // Layout constants using props
   const itemSpacing = 0.5;
-  const startY = panelHeight / 2 - 0.5; // Start below title
-  const yearX = -panelWidth / 2 + 0.5; // X pos for years
-  const detailX = -panelWidth / 2 + 1.5; // X pos for institution/degree
-  const detailMaxWidth = panelWidth - 1.8; // Max width for details
+  const topPadding = 0.2; // Padding from console top
+
+  // Adjusted start positions relative to console center
+  const startY = panelHeight / 2 - topPadding - 0.1; // Start below padding
+  const yearX = -panelWidth / 2 + 0.5; 
+  const detailX = -panelWidth / 2 + 1.5; 
+  const detailMaxWidth = panelWidth - (detailX - (-panelWidth / 2)) - 0.3; // Calculate based on detailX and right margin
 
   return (
-    <Billboard position={[0, 1, -3]}>
-      <Plane args={[panelWidth, panelHeight]} material={hologramMaterial} />
-
-      {/* Title */}
-      <Text
-        material={textMaterial}
-        fontSize={0.25}
-        color={textMaterial.emissive}
-        position={[0, panelHeight / 2 - 0.2, 0.01]}
-        anchorX="center"
-        anchorY="top"
-      >
-        Education
-      </Text>
-
-      {/* Education List */}
+    <group position={[0, 0, 0]}> 
+      {/* Education List - No scroll group needed for now */}
       {educationData.map((item, index) => {
-        const yPos = startY - index * itemSpacing;
+        // Calculate Y relative to the container's top (startY)
+        const yPos = startY - index * itemSpacing; 
+
+        // Removed visibility check
+
         return (
-          <group key={index} position={[0, yPos, 0.01]}>
+          <group key={index} position={[0, yPos, 0.01]}> 
             {/* Years */}
             <Text
-              material={detailTextMaterial}
+              material={consoleDetailTextMaterial}
               fontSize={0.1}
-              color={detailTextMaterial.emissive}
-              position={[yearX, 0.05, 0]} // Slightly above vertical center
+              color={consoleDetailTextMaterial.color}
+              position={[yearX, 0.05, 0]} 
               anchorX="left"
               anchorY="top"
             >
@@ -69,10 +70,10 @@ const EducationContent: React.FC = () => {
             </Text>
             {/* Institution */}
             <Text
-              material={textMaterial}
+              material={consoleTextMaterial} // Use main text material
               fontSize={0.14}
-              color={textMaterial.emissive}
-              position={[detailX, 0, 0]} // Align top with years?
+              color={consoleTextMaterial.color}
+              position={[detailX, 0, 0]} 
               anchorX="left"
               anchorY="top"
               maxWidth={detailMaxWidth}
@@ -81,10 +82,10 @@ const EducationContent: React.FC = () => {
             </Text>
             {/* Degree */}
             <Text
-              material={detailTextMaterial}
+              material={consoleDetailTextMaterial}
               fontSize={0.11}
-              color={detailTextMaterial.emissive}
-              position={[detailX, -0.16, 0]} // Below institution
+              color={consoleDetailTextMaterial.color}
+              position={[detailX, -0.16, 0]} 
               anchorX="left"
               anchorY="top"
               maxWidth={detailMaxWidth}
@@ -95,7 +96,7 @@ const EducationContent: React.FC = () => {
           </group>
         );
       })}
-    </Billboard>
+    </group>
   );
 };
 

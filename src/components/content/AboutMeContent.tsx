@@ -1,86 +1,85 @@
-import React from 'react';
-import { Billboard, Plane, Text } from '@react-three/drei';
+import React, { useMemo } from 'react';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Basic hologram material
-const hologramMaterial = new THREE.MeshStandardMaterial({
-  color: '#00ffff', // Cyan color
-  emissive: '#00ffff', // Make it glow
-  emissiveIntensity: 0.6,
-  transparent: true,
-  opacity: 0.6,
-  roughness: 0.6,
-  metalness: 0.2,
-  side: THREE.DoubleSide, // Render both sides
-  depthWrite: false, // Prevent writing to depth buffer for better transparency
-  blending: THREE.AdditiveBlending // Additive blending for glow effect
+// --- Adjusted Materials for Console (Copied from others) ---
+const consoleTextMaterial = new THREE.MeshStandardMaterial({
+  color: '#E0F8F8', emissive: '#A0FFFF', emissiveIntensity: 0.2, 
+  roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.9,
 });
 
-const textMaterial = hologramMaterial.clone();
-textMaterial.emissiveIntensity = 1.0; // Make text brighter
-textMaterial.opacity = 0.8;
+const consoleDetailTextMaterial = consoleTextMaterial.clone();
+consoleDetailTextMaterial.color.set('#B0E0E0');
+consoleDetailTextMaterial.emissiveIntensity = 0.1;
+consoleDetailTextMaterial.opacity = 0.8;
+// -----------
 
-const AboutMeContent: React.FC = () => {
-  // Extracting data - could eventually fetch or receive as props
+// --- Props Interface ---
+interface AboutMeContentProps {
+    panelWidth: number;
+    panelHeight: number;
+}
+
+const AboutMeContent: React.FC<AboutMeContentProps> = ({ 
+    panelWidth, 
+    panelHeight, 
+}) => {
+
+  // --- Data ---
   const name = "Ivhan Salazar";
   const title = "Aspiring Full Stack Developer";
-  const bio = "I am an aspiring software developer with a keen focus on delivering top-tier quality... always pushing myself to achieve the best possible outcomes."; // Shortened for example
+  const bio = "I am an aspiring software developer with a keen focus on delivering top-tier quality. I thrive on challenges and continuously seek opportunities to expand my skill set, always pushing myself to achieve the best possible outcomes."; // Full bio
+  // ----------
 
-  const maxWidth = 4; // Max width of the hologram plane
+  // Layout constants using panelWidth
+  const contentMaxWidth = panelWidth * 0.9; 
+  const topPadding = 0.2; // Padding from console top edge
+
+  // Position elements relative to console center and topPadding
+  const nameY = panelHeight / 2 - topPadding - 0.1; // Adjust Y based on panelHeight
+  const titleY = nameY - 0.3;
+  const bioY = titleY - 0.25;
 
   return (
-    <Billboard
-      follow={true}
-      lockX={false}
-      lockY={false}
-      lockZ={false} // Lock rotation if needed?
-      position={[0, 1, -3]} // Position relative to the selected object/center
-    >
-      {/* Background Plane */}
-      <Plane args={[maxWidth, 2.5]} material={hologramMaterial}>
-        {/* You might add textures or shaders here later for scan lines etc. */}
-      </Plane>
-
-      {/* Text Content - Position relative to the plane */}
-      <Text
-        material={textMaterial}
-        fontSize={0.25}
-        color={textMaterial.emissive} // Use emissive color for Text
-        position={[0, 0.8, 0.01]} // Slightly in front of the plane
-        anchorX="center"
-        anchorY="top"
-        maxWidth={maxWidth * 0.9}
-      >
-        {name}
-      </Text>
-      <Text
-        material={textMaterial}
-        fontSize={0.15}
-        color={textMaterial.emissive}
-        position={[0, 0.5, 0.01]}
-        anchorX="center"
-        anchorY="top"
-        fontStyle="italic"
-        maxWidth={maxWidth * 0.9}
-      >
-        {title}
-      </Text>
-      <Text
-        material={textMaterial}
-        fontSize={0.12}
-        color={textMaterial.emissive}
-        position={[0, 0.3, 0.01]}
-        anchorX="center"
-        anchorY="top"
-        textAlign="justify"
-        lineHeight={1.5}
-        maxWidth={maxWidth * 0.9}
-      >
-        {bio}
-      </Text>
-      {/* Add links/resume as Text elements or maybe simple geometries later */}
-
-    </Billboard>
+    <group position={[0, 0, 0]}> {/* Base group at console center */}
+        {/* Content positioned relative to console center/top */}
+        <Text
+            material={consoleTextMaterial}
+            fontSize={0.25}
+            color={consoleTextMaterial.color}
+            position={[0, nameY, 0.01]} // Use calculated Y
+            anchorX="center"
+            anchorY="top"
+            maxWidth={contentMaxWidth}
+        >
+            {name}
+        </Text>
+        <Text
+            material={consoleDetailTextMaterial} // Use detail material for title
+            fontSize={0.15}
+            color={consoleDetailTextMaterial.color}
+            position={[0, titleY, 0.01]} // Use calculated Y
+            anchorX="center"
+            anchorY="top"
+            fontStyle="italic"
+            maxWidth={contentMaxWidth}
+        >
+            {title}
+        </Text>
+        <Text
+            material={consoleDetailTextMaterial}
+            fontSize={0.12}
+            color={consoleDetailTextMaterial.color}
+            position={[0, bioY, 0.01]} // Use calculated Y
+            anchorX="center"
+            anchorY="top"
+            textAlign="justify"
+            lineHeight={1.5}
+            maxWidth={contentMaxWidth}
+        >
+            {bio}
+        </Text>
+    </group>
   );
 };
 

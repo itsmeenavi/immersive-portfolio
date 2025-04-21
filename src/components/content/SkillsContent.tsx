@@ -1,21 +1,18 @@
-import React from 'react';
-import { Billboard, Plane, Text } from '@react-three/drei';
+import React, { useMemo } from 'react';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Basic hologram material (copied from AboutMeContent)
-const hologramMaterial = new THREE.MeshStandardMaterial({
-  color: '#00ffff', emissive: '#00ffff', emissiveIntensity: 0.6, 
-  transparent: true, opacity: 0.6, roughness: 0.6, metalness: 0.2,
-  side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending
+// --- Adjusted Materials for Console (similar to WorkExperience) ---
+const consoleTextMaterial = new THREE.MeshStandardMaterial({
+  color: '#E0F8F8', emissive: '#A0FFFF', emissiveIntensity: 0.2, 
+  roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.9,
 });
 
-const textMaterial = hologramMaterial.clone();
-textMaterial.emissiveIntensity = 1.0; textMaterial.opacity = 0.8;
-
-// Create a separate, dimmer material for the level text
-const levelTextMaterial = textMaterial.clone();
-levelTextMaterial.opacity = textMaterial.opacity * 0.7; // Make it dimmer than the name
-levelTextMaterial.emissiveIntensity = textMaterial.emissiveIntensity * 0.8;
+const consoleLevelTextMaterial = consoleTextMaterial.clone();
+consoleLevelTextMaterial.color.set('#B0E0E0');
+consoleLevelTextMaterial.emissiveIntensity = 0.1;
+consoleLevelTextMaterial.opacity = consoleTextMaterial.opacity * 0.8; // Keep level dimmer
+// -----------
 
 // --- Data --- (Hardcoded for now)
 const skillsData = [
@@ -31,71 +28,71 @@ const skillsData = [
 ];
 // ------------- 
 
-const SkillsContent: React.FC = () => {
-  const panelWidth = 5; // Wider panel for grid
-  const panelHeight = 3;
-  const columns = 5; // Adjust number of columns
+// --- Props Interface ---
+interface SkillsContentProps {
+    panelWidth: number;
+    panelHeight: number;
+}
+
+const SkillsContent: React.FC<SkillsContentProps> = ({ 
+    panelWidth, 
+    panelHeight, 
+}) => {
+
+  // Layout constants using props
+  const columns = 5; 
   const columnWidth = panelWidth / columns;
-  const rowHeight = 0.4; // Adjust vertical spacing
-  const startX = -panelWidth / 2 + columnWidth / 2;
-  const startY = panelHeight / 2 - 0.5; // Start below title
+  const rowHeight = 0.4; 
   const nameFontSize = 0.1;
   const levelFontSize = 0.08;
+  const topPadding = 0.2; // Padding from console top edge
+  const bottomPadding = 0.2; // Padding from bottom
+
+  // Adjusted start positions relative to console center
+  const startX = -panelWidth / 2 + columnWidth / 2;
+  const startY = panelHeight / 2 - topPadding - nameFontSize; // Start below top padding
 
   return (
-    <Billboard position={[0, 1, -3]}>
-      {/* Background Plane */}
-      <Plane args={[panelWidth, panelHeight]} material={hologramMaterial} />
+    <group position={[0, 0, 0]}> {/* Base group at console center */}
+        {/* Skills Grid */}
+        {skillsData.map((skill, index) => {
+            const col = index % columns;
+            const row = Math.floor(index / columns);
+            const xPos = startX + col * columnWidth;
+            const yPos = startY - row * rowHeight;
 
-      {/* Title */}
-      <Text
-        material={textMaterial}
-        fontSize={0.25}
-        color={textMaterial.emissive}
-        position={[0, panelHeight / 2 - 0.2, 0.01]} // Top center
-        anchorX="center"
-        anchorY="top"
-      >
-        Skills
-      </Text>
-
-      {/* Skills Grid */}
-      {skillsData.map((skill, index) => {
-        const col = index % columns;
-        const row = Math.floor(index / columns);
-        const xPos = startX + col * columnWidth;
-        const yPos = startY - row * rowHeight;
-
-        return (
-          <group key={index} position={[xPos, yPos, 0.01]}>
-            <Text
-              material={textMaterial}
-              fontSize={nameFontSize}
-              color={textMaterial.emissive}
-              anchorX="center"
-              anchorY="middle"
-              maxWidth={columnWidth * 0.9}
-              textAlign="center"
-            >
-              {skill.name}
-            </Text>
-            <Text
-              material={levelTextMaterial}
-              fontSize={levelFontSize}
-              color={levelTextMaterial.emissive}
-              position={[0, -nameFontSize * 0.8, 0]} // Position level below name
-              anchorX="center"
-              anchorY="middle"
-              maxWidth={columnWidth * 0.9}
-              textAlign="center"
-              fontStyle="italic"
-            >
-              {skill.level}
-            </Text>
-          </group>
-        );
-      })}
-    </Billboard>
+            return (
+                <group key={index} position={[xPos, yPos, 0.01]}> 
+                    {/* Skill Name - Use Console Material */}
+                    <Text
+                        material={consoleTextMaterial}
+                        fontSize={nameFontSize}
+                        color={consoleTextMaterial.color}
+                        anchorX="center"
+                        anchorY="middle"
+                        maxWidth={columnWidth * 0.9}
+                        textAlign="center"
+                    >
+                        {skill.name}
+                    </Text>
+                    {/* Skill Level - Use Console Level Material */}
+                    <Text
+                        material={consoleLevelTextMaterial}
+                        fontSize={levelFontSize}
+                        color={consoleLevelTextMaterial.color}
+                        position={[0, -nameFontSize * 0.8, 0]} // Position level below name
+                        anchorX="center"
+                        anchorY="middle"
+                        maxWidth={columnWidth * 0.9}
+                        textAlign="center"
+                        fontStyle="italic"
+                    >
+                        {skill.level}
+                    </Text>
+                </group>
+            );
+        })}
+    </group>
   );
 };
 

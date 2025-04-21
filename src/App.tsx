@@ -1,37 +1,46 @@
-import React, { useState, useEffect, useRef, Suspense, lazy } from 'react' // Keep necessary hooks, add Suspense, lazy
+import React, { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } from 'react' // Keep necessary hooks, add Suspense, lazy, useMemo, useCallback
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Text, Stars, RoundedBox } from '@react-three/drei' // Removed Html
+import { OrbitControls, Text, Stars, Sphere } from '@react-three/drei' // Removed Html
 import * as THREE from 'three'
 import './App.css'
+import InfoConsole from './components/InfoConsole'
 
 // --- 3D Components ---
-// Consistent material for section representation (e.g., planets)
-const sectionMaterial = new THREE.MeshStandardMaterial({ color: '#9b59b6', roughness: 0.4, metalness: 0.1 });
-const selectedMaterial = new THREE.MeshStandardMaterial({ color: '#f1c40f', emissive: '#f1c40f', emissiveIntensity: 0.6, toneMapped: false });
+// Base material for planets
+const basePlanetMaterial = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.1 });
+const selectedMaterial = new THREE.MeshStandardMaterial({ color: '#f1c40f', emissive: '#f1c40f', emissiveIntensity: 0.8, toneMapped: false });
 
-// Component for Section Representation (changed to RoundedBox)
+// Simple color variations for planets
+const planetColors = ['#9b59b6', '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#1abc9c'];
+
+// Component for Section Representation (changed to Sphere)
 function SectionRepresentation(
-  { position, label, onClick, isSelected }: 
-  { position: [number, number, number]; label: string; onClick: () => void; isSelected: boolean }
+  { position, label, onClick, isSelected, color }: 
+  { position: [number, number, number]; label: string; onClick: () => void; isSelected: boolean; color: string }
 ) {
   const [hovered, setHover] = useState(false)
   const meshRef = useRef<THREE.Mesh>(null!);
 
+  // Create a unique material instance for each planet to set color
+  const planetMaterial = useMemo(() => {
+    const mat = basePlanetMaterial.clone();
+    mat.color.set(color);
+    return mat;
+  }, [color]);
+
   return (
     <group position={position}>
-      <RoundedBox
+      <Sphere
         ref={meshRef}
-        args={[1.6, 1.6, 1.6]}
-        radius={0.2}
-        smoothness={4}
-        material={isSelected ? selectedMaterial : sectionMaterial}
+        args={[0.8, 32, 32]} // radius, widthSegments, heightSegments
+        material={isSelected ? selectedMaterial : planetMaterial}
         onClick={onClick}
         onPointerOver={(event) => { event.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer'; }}
         onPointerOut={() => { setHover(false); document.body.style.cursor = 'auto'; }}
-        scale={hovered ? 1.1 : 1}
+        scale={hovered ? 1.2 : 1} // Slightly larger hover effect
       />
       <Text
-        position={[0, 1.4, 0]}
+        position={[0, 1.1, 0]} // Adjust label position for sphere
         fontSize={0.25}
         color="white"
         anchorX="center"
@@ -48,7 +57,10 @@ function SectionRepresentation(
 
 // --- Dynamic Content Loader ---
 const contentComponents: {
-  [key: string]: React.LazyExoticComponent<React.FC<{}>>
+  [key: string]: React.LazyExoticComponent<React.FC<{ 
+    panelWidth: number; 
+    panelHeight: number; 
+  }>>;
 } = {
   AboutMe: lazy(() => import('./components/content/AboutMeContent')),
   Skills: lazy(() => import('./components/content/SkillsContent')),
@@ -58,19 +70,55 @@ const contentComponents: {
   Contact: lazy(() => import('./components/content/ContactContent')),
 };
 
+// ContentDisplay - Now with dynamic height
 function ContentDisplay({ selectedSection }: { selectedSection: string | null }) {
+
   if (!selectedSection) return null;
 
   const ContentComponent = contentComponents[selectedSection];
 
   if (!ContentComponent) {
     console.warn(`Content component for ${selectedSection} not found.`);
-    return null; // Or a fallback 3D element
+    return null;
   }
 
+  // --- Define Console Dimensions Dynamically ---
+  let consoleWidth = 5.5; // Standard width
+  let consoleHeight = 3.5; // Standard height
+
+  // Adjust dimensions for specific sections
+  switch (selectedSection) {
+    case 'WorkExperience':
+    case 'Projects':
+      consoleHeight = 5.0; // Taller for these
+      break;
+    case 'Skills':
+      consoleHeight = 4.0; // Medium height
+      break;
+    case 'Contact':
+      consoleHeight = 2.0; // Shorter
+      consoleWidth = 4.0;  // Narrower
+      break;
+    case 'Education':
+         consoleHeight = 4.0; // Education might need medium height too
+         break;
+    // Keep default for AboutMe
+  }
+  // -------------------------------------------
+
   return (
-    <Suspense fallback={null}> {/* Simple fallback, maybe a loading spinner? */}
-      <ContentComponent />
+    <Suspense fallback={null}> 
+      <InfoConsole 
+        width={consoleWidth} // Use dynamic width
+        height={consoleHeight} // Use dynamic height
+        position={[0, 0.5, 2]}
+      >
+        {/* Pass dynamic dimensions */}
+        <ContentComponent 
+          panelWidth={consoleWidth} 
+          panelHeight={consoleHeight} 
+        />
+      </InfoConsole>
     </Suspense>
   );
 }
@@ -92,19 +140,28 @@ function App() {
   const defaultCameraPosition = new THREE.Vector3(0, 2, 10);
 
   return (
-    <Canvas camera={{ position: defaultCameraPosition.toArray() as [number,number,number], fov: 60 }}>
+    <Canvas style={{ background: '#000000' }} camera={{ position: defaultCameraPosition.toArray() as [number,number,number], fov: 60 }}>
       {/* Lighting & Stars */}
-      <ambientLight intensity={0.4} />
-      <pointLight position={[0, 10, 10]} intensity={0.8} />
-      <directionalLight position={[-5, 5, -5]} intensity={0.5} />
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+      <ambientLight intensity={0.3} /> {/* Slightly dimmer ambient */}
+      <pointLight position={[0, 10, 10]} intensity={0.7} />
+      <directionalLight position={[-5, 5, -5]} intensity={0.4} />
+      <Stars 
+        radius={80} // Smaller radius to bring them closer
+        depth={40} 
+        count={7000} // More stars
+        factor={5} // Slightly larger points
+        saturation={0} 
+        fade // Keep fade effect
+        speed={0.5} // Slower speed
+      />
 
-      {/* Section Representations */}
+      {/* Section Representations (Planets) */}
       {sections.map((section, index) => (
         <SectionRepresentation
           key={section}
           position={sectionPositions[index].toArray() as [number, number, number]}
           label={section}
+          color={planetColors[index % planetColors.length]}
           onClick={() => {
             setSelectedSection(section === selectedSection ? null : section)
           }}
@@ -116,11 +173,11 @@ function App() {
       <OrbitControls
         enablePan={true}
         enableZoom={true}
-        minDistance={2}
-        maxDistance={20}
+        minDistance={3} // Adjust min distance for planets
+        maxDistance={25}
       />
 
-      {/* Render the 3D Content Display */}
+      {/* Render the ContentDisplay (which now renders the InfoConsole) */}
       <ContentDisplay selectedSection={selectedSection} />
 
     </Canvas>

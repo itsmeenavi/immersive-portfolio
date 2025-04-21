@@ -1,19 +1,23 @@
-import React from 'react';
-import { Billboard, Plane, Text } from '@react-three/drei';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-// --- Materials (Copied) ---
-const hologramMaterial = new THREE.MeshStandardMaterial(/* ... */);
-hologramMaterial.color = new THREE.Color('#00ffff'); hologramMaterial.emissive = new THREE.Color('#00ffff');
-hologramMaterial.emissiveIntensity = 0.6; hologramMaterial.transparent = true; hologramMaterial.opacity = 0.6;
-hologramMaterial.roughness = 0.6; hologramMaterial.metalness = 0.2; hologramMaterial.side = THREE.DoubleSide;
-hologramMaterial.depthWrite = false; hologramMaterial.blending = THREE.AdditiveBlending;
+// --- Adjusted Materials for Console ---
+// Make text less emissive, maybe brighter base color for contrast
+const consoleTextMaterial = new THREE.MeshStandardMaterial({
+  color: '#E0F8F8', // Off-white / very light cyan
+  emissive: '#A0FFFF', // Dimmer emissive
+  emissiveIntensity: 0.2, 
+  roughness: 0.6,
+  metalness: 0.1,
+  transparent: true, 
+  opacity: 0.9, // Slightly less than fully opaque
+});
 
-const textMaterial = hologramMaterial.clone();
-textMaterial.emissiveIntensity = 1.0; textMaterial.opacity = 0.8;
-
-const detailTextMaterial = textMaterial.clone();
-detailTextMaterial.emissiveIntensity = 0.8; detailTextMaterial.opacity = 0.7;
+const consoleDetailTextMaterial = consoleTextMaterial.clone();
+consoleDetailTextMaterial.color.set('#B0E0E0'); // Slightly darker detail text
+consoleDetailTextMaterial.emissiveIntensity = 0.1;
+consoleDetailTextMaterial.opacity = 0.8;
 // -----------
 
 // --- Data ---
@@ -49,49 +53,70 @@ const workExperienceData = [
 ];
 // ----------
 
-const WorkExperienceContent: React.FC = () => {
-  const panelWidth = 5.5; // Wider for descriptions
-  const panelHeight = 3.5;
-  const itemSpacing = 0.75; // More space for description
-  const startY = panelHeight / 2 - 0.5;
-  const yearX = -panelWidth / 2 + 0.5;
-  const detailX = -panelWidth / 2 + 1.5;
-  const detailMaxWidth = panelWidth - 1.8;
+// --- Props Interface ---
+interface WorkExperienceContentProps {
+    panelWidth: number; 
+    panelHeight: number;
+    // Removed onWheel, scrollYOffset
+}
+
+const WorkExperienceContent: React.FC<WorkExperienceContentProps> = ({ 
+    panelWidth, 
+    panelHeight, 
+    // Removed onWheel, scrollYOffset from destructuring
+}) => {
+  
+  // Keep using props for dimensions
+  const itemSpacing = 0.75;
+  const descriptionLineHeight = 0.1 * 1.4; 
+  const topPadding = 0.25; // Adjusted padding for no main title here
+  const bottomPadding = 0.2;
+
+  // Layout constants using panelWidth
+  const yearX = -panelWidth / 2 + 0.4;
+  const detailX = -panelWidth / 2 + 1.4;
+  const detailMaxWidth = panelWidth - (detailX - (-panelWidth / 2)) - 0.3;
+  
+  // Use panelHeight from props for start Y relative to console center
+  const startY = panelHeight / 2 - topPadding;
 
   return (
-    <Billboard position={[0, 1, -3]}>
-      <Plane args={[panelWidth, panelHeight]} material={hologramMaterial} />
-
-      {/* Title */}
-      <Text material={textMaterial} fontSize={0.25} color={textMaterial.emissive} position={[0, panelHeight / 2 - 0.2, 0.01]} anchorX="center" anchorY="top">
-        Work Experience
-      </Text>
-
-      {/* Experience List */}
+    <group position={[0, 0, 0]}> 
+      {/* Removed Scrollable Group wrapper */}
       {workExperienceData.map((item, index) => {
-        const yPos = startY - index * itemSpacing;
-        return (
-          <group key={index} position={[0, yPos, 0.01]}>
-            {/* Years */}
-            <Text material={detailTextMaterial} fontSize={0.1} color={detailTextMaterial.emissive} position={[yearX, 0, 0]} anchorX="left" anchorY="top">
-              {item.years}
-            </Text>
-            {/* Company */}
-            <Text material={textMaterial} fontSize={0.14} color={textMaterial.emissive} position={[detailX, 0, 0]} anchorX="left" anchorY="top" maxWidth={detailMaxWidth}>
-              {item.company}
-            </Text>
-            {/* Position */}
-            <Text material={detailTextMaterial} fontSize={0.11} color={detailTextMaterial.emissive} position={[detailX, -0.16, 0]} anchorX="left" anchorY="top" maxWidth={detailMaxWidth} fontStyle="italic">
-              {item.position}
-            </Text>
-            {/* Description */}
-            <Text material={detailTextMaterial} fontSize={0.1} color={detailTextMaterial.emissive} position={[detailX, -0.32, 0]} anchorX="left" anchorY="top" maxWidth={detailMaxWidth} lineHeight={1.4} textAlign="justify">
-              {item.description}
-            </Text>
-          </group>
-        );
-      })}
-    </Billboard>
+          let currentY = startY;
+          for (let i = 0; i < index; i++) {
+            const prevItem = workExperienceData[i];
+            const prevDescLines = Math.ceil(prevItem.description.length / (detailMaxWidth / (0.1 * 0.6)));
+            const prevItemHeight = 0.16 + 0.16 + (prevDescLines * descriptionLineHeight);
+            currentY -= (prevItemHeight + itemSpacing);
+          }
+          const yPos = currentY; // Y position relative to the container top (startY)
+
+          // Removed Visibility Check
+
+          return (
+            <group key={index} position={[0, yPos, 0.01]}> 
+              {/* Years */}
+              <Text material={consoleDetailTextMaterial} fontSize={0.1} color={consoleDetailTextMaterial.color} position={[yearX, 0, 0]} anchorX="left" anchorY="top">
+                {item.years}
+              </Text>
+              {/* Company */}
+              <Text material={consoleTextMaterial} fontSize={0.14} color={consoleTextMaterial.color} position={[detailX, 0, 0]} anchorX="left" anchorY="top" maxWidth={detailMaxWidth}>
+                {item.company}
+              </Text>
+              {/* Position */}
+              <Text material={consoleDetailTextMaterial} fontSize={0.11} color={consoleDetailTextMaterial.color} position={[detailX, -0.16, 0]} anchorX="left" anchorY="top" maxWidth={detailMaxWidth} fontStyle="italic">
+                {item.position}
+              </Text>
+              {/* Description */}
+              <Text material={consoleDetailTextMaterial} fontSize={0.1} color={consoleDetailTextMaterial.color} position={[detailX, -0.32, 0]} anchorX="left" anchorY="top" maxWidth={detailMaxWidth} lineHeight={1.4} textAlign="justify">
+                {item.description}
+              </Text>
+            </group>
+          );
+        })}
+    </group>
   );
 };
 
